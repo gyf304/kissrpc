@@ -1,0 +1,11 @@
+{
+	"name": "kissrpc",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"resolutions": {
+		"@kissrpc/server": "workspace:*",
+		"@kissrpc/client": "workspace:*"
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"name": "@kissrpc/server",
+	"version": "0.0.1",
+	"module": "index.ts",
+	"type": "module",
+	"peerDependencies": {
+		"typescript": "^5.0.0",
+		"zod": "^3.22.4"
+	}
+}
