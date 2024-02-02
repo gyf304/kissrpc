@@ -1,0 +1,21 @@
+{
+  "name": "@kissrpc/helloserver",
+  "private": true,
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+	"anyjspm": "^0.0.3",
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0",
+    "zod": "^3.22.4"
+  },
+  "dependencies": {
+    "@kissrpc/server": "workspace:*",
+    "fastify": "^4.26.0"
+  },
+  "scripts": {
+    "start": "anyjs src/index.ts"
+  }
+}

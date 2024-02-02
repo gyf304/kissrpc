@@ -10,6 +10,7 @@ export interface RPCRequest {
 export interface RPCDataResponse {
 	jsonrpc: "2.0";
 	id: number | string | null;
+	method?: undefined;
 	result: unknown;
 	error?: undefined;
 }
@@ -17,6 +18,7 @@ export interface RPCDataResponse {
 export interface RPCErrorResponse {
 	jsonrpc: "2.0";
 	id: number | string | null;
+	method?: undefined;
 	result?: undefined;
 	error: {
 		code: number;
@@ -49,20 +51,46 @@ export class InvalidParamsRPCError extends RPCError {
 	}
 }
 
+export class InvalidRequestRPCError extends RPCError {
+	constructor(message: string, data?: unknown, originalError?: unknown) {
+		super(-32600, message, data, originalError);
+		this.name = "InvalidRequestRPCError";
+	}
+}
+
 export type RPCResponse = RPCDataResponse | RPCErrorResponse;
 
-export function isRPCRequest(value: unknown): value is RPCRequest {
-	if (typeof value !== "object" || value === null) {
-		return false;
+export function parseOneRPCRequest(req: unknown): (RPCRequest | RPCErrorResponse) {
+	const err = (message: string) => ({
+		jsonrpc: "2.0",
+		id: null,
+		error: {
+			code: -32600,
+			message,
+		},
+	} as RPCErrorResponse);
+	if (typeof req !== "object" || req === null) {
+		return err("Invalid Request");
 	}
-	const obj = value as Record<string, unknown>;
-	return (
-		obj.jsonrpc === "2.0" &&
-		obj.hasOwnProperty("id") && 
-		["string", "number", "null"].includes(typeof obj.id) &&
-		typeof obj.method === "string" &&
-		obj.hasOwnProperty("params")
-	);
+	const obj = req as Record<string, unknown>;
+	if (obj.jsonrpc !== "2.0") {
+		return err("Invalid JSON-RPC Version");
+	}
+	if (!obj.hasOwnProperty("id")) {
+		return err("Missing ID");
+	}
+	if (!["string", "number", "null"].includes(typeof obj.id)) {
+		return err("Invalid ID");
+	}
+	if (typeof obj.method !== "string") {
+		return err("Invalid Method");
+	}
+	return {
+		jsonrpc: "2.0",
+		id: obj.id,
+		method: obj.method,
+		params: obj.params,
+	} as RPCRequest;
 }
 
 function jsonRPCCodeToHTTPStatus(code: number): number {
@@ -88,7 +116,19 @@ export function wrapError(error: unknown): RPCErrorResponse["error"] {
 	};
 }
 
-export function httpStatusCode(response: RPCResponse): number {
+export function httpStatusCode(response: RPCResponse | RPCResponse[]): number {
+	if (Array.isArray(response)) {
+		if (response.length === 0) {
+			return 204;
+		}
+		const allCodes = response.map(httpStatusCode);
+		const uniqueCodes = new Set(allCodes);
+		if (uniqueCodes.size === 1) {
+			return allCodes[0];
+		} else {
+			return 207; // Multi-Status
+		}
+	}
 	return "result" in response ? 200 : jsonRPCCodeToHTTPStatus(response.error.code);
 }
 

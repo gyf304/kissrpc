@@ -1,12 +1,13 @@
 {
-	"name": "@kissrpc/client",
-	"version": "0.0.1",
-	"module": "index.ts",
-	"type": "module",
-	"dependencies": {
-		"@kissrpc/server": "^0.0.1"
-	},
-	"peerDependencies": {
-		"typescript": "^5.0.0"
-	}
+  "name": "@kissrpc/client",
+  "version": "0.0.1",
+  "module": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "@kissrpc/server": "^0.0.1"
+  },
+  "devDependencies": {
+    "anyjspm": "^0.0.3",
+    "typescript": "^5.0.0"
+  }
 }
