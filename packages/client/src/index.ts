@@ -1,4 +1,4 @@
-import type { AnyNode, ContextTransformer, Endpoint, RPCRequest, RPCResponse } from "@kissrpc/server";
+import type { RPCRequest, RPCResponse } from "@kissrpc/server";
 
 export class RPCError extends Error {
 	constructor(public readonly code: number, message: string, public readonly data?: unknown) {

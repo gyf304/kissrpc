@@ -1,13 +1,14 @@
 {
 	"extends": "../../tsconfig.json",
 	"compilerOptions": {
-		"outDir": "./dist/esm",
+		"outDir": "./dist/cjs",
 		"rootDir": "./src",
-		"module": "ESNext",
-		"moduleResolution": "Bundler",
+		"module": "CommonJS",
+		"moduleResolution": "Node10",
 		"declaration": true,
 		"noEmit": false,
-		"allowImportingTsExtensions": false
+		"allowImportingTsExtensions": false,
+		"paths": {}
 	},
 	"include": ["src"]
 }

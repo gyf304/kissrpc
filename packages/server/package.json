@@ -16,6 +16,7 @@
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "anypm run build:esm && anypm run build:cjs"
+    "build": "anypm run build:esm && anypm run build:cjs",
+    "prepack": "anypm run build"
   }
 }
