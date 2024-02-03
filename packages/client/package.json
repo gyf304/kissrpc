@@ -7,7 +7,7 @@
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
   "dependencies": {
-    "@kissrpc/server": "^0.0.1"
+    "@kissrpc/server": "0.0.2"
   },
   "devDependencies": {
     "anyjspm": "^0.0.3",
