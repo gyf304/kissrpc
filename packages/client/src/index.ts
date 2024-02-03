@@ -1,4 +1,5 @@
 import type { RPCRequest, RPCResponse } from "@kissrpc/server";
+export type { RPCRequest, RPCResponse };
 
 export class RPCError extends Error {
 	constructor(public readonly code: number, message: string, public readonly data?: unknown) {
