@@ -7,8 +7,7 @@
 		"moduleResolution": "Node10",
 		"declaration": true,
 		"noEmit": false,
-		"allowImportingTsExtensions": false,
-		"paths": {},
+		"allowImportingTsExtensions": false
 	},
 	"include": ["src"]
 }

@@ -1,14 +1,9 @@
-import type { RPCRequest, RPCResponse } from "@kissrpc/server";
+import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
 export type { RPCRequest, RPCResponse };
 
-export class RPCError extends Error {
-	constructor(public readonly code: number, message: string, public readonly data?: unknown) {
-		super(message);
-		this.name = "RPCError";
-	}
-}
+import { RPCError } from "@kissrpc/jsonrpc";
 
-export interface RPCRoundTripper {
+export interface JSONRPCRoundTripper {
 	roundTrip(req: RPCRequest): Promise<RPCResponse>;
 }
 
@@ -16,22 +11,22 @@ interface Client {
 	[key: string]: ((...args: any[]) => Promise<any>) | Client;
 }
 
-export class RPCRoundTripperError extends Error {}
+export class JSONRPCRoundTripperError extends Error {}
 
 function checkRPCResponse(req: RPCRequest, res: unknown): void {
 	if (typeof res !== "object" || res === null) {
-		throw new RPCRoundTripperError("Invalid response");
+		throw new JSONRPCRoundTripperError("Invalid response");
 	}
 	const obj = res as Record<string, unknown>;
 	if (obj.jsonrpc !== "2.0") {
-		throw new RPCRoundTripperError("Invalid JSON-RPC version");
+		throw new JSONRPCRoundTripperError("Invalid JSON-RPC version");
 	}
 	if (obj.id !== req.id) {
-		throw new RPCRoundTripperError("Invalid response ID");
+		throw new JSONRPCRoundTripperError("Invalid response ID");
 	}
 }
 
-function makeRequester(transport: RPCRoundTripper, path: string[]): (...args: any[]) => Promise<any> {
+function makeRequester(transport: JSONRPCRoundTripper, path: string[]): (...args: any[]) => Promise<any> {
 	return (...args: any[]) => {
 		return transport.roundTrip({
 			jsonrpc: "2.0",
@@ -47,7 +42,7 @@ function makeRequester(transport: RPCRoundTripper, path: string[]): (...args: an
 	};
 }
 
-function makeClient(transport: RPCRoundTripper, path: string[]): any {
+function makeClient(transport: JSONRPCRoundTripper, path: string[]): any {
 	return new Proxy(makeRequester(transport, path), {
 		get(_, key: string) {
 			return makeClient(transport, [...path, key]);
@@ -55,7 +50,7 @@ function makeClient(transport: RPCRoundTripper, path: string[]): any {
 	});
 }
 
-export function client<T extends Client>(transport: RPCRoundTripper): T {
+export function client<T extends Client>(transport: JSONRPCRoundTripper): T {
 	return makeClient(transport, []) as T;
 }
 
@@ -127,10 +122,10 @@ export class FetchTransport {
 
 		const results = await res.json();
 		if (!Array.isArray(results)) {
-			throw new RPCRoundTripperError("Invalid response");
+			throw new JSONRPCRoundTripperError("Invalid response");
 		}
 		if (results.length !== requests.length) {
-			throw new RPCRoundTripperError("Invalid response");
+			throw new JSONRPCRoundTripperError("Invalid response");
 		}
 		for (let i = 0; i < requests.length; i++) {
 			const req = batch[i];
@@ -154,9 +149,7 @@ export class FetchTransport {
 			if (this.timeout === undefined) {
 				this.timeout = setTimeout(() => {
 					this.timeout = undefined;
-					this.flush().catch((e) => {
-						console.error(e);
-					});
+					this.flush();
 				}, this.options.maxBatchWaitMs);
 			}
 		});

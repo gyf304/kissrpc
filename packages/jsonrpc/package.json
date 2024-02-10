@@ -1,22 +1,18 @@
 {
-  "name": "@kissrpc/client",
+  "name": "@kissrpc/jsonrpc",
   "private": false,
   "license": "MIT",
   "version": "0.0.3",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
-  "dependencies": {
-    "@kissrpc/server": "0.0.2"
-  },
   "devDependencies": {
-    "anyjspm": "^0.0.3",
     "typescript": "^5.0.0"
   },
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "anypm run build:esm && anypm run build:cjs",
-    "prepack": "anypm run build"
+    "build": "bun run build:esm && bun run build:cjs",
+    "prepack": "bun run build"
   }
 }

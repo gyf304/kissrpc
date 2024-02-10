@@ -3,51 +3,32 @@ import * as z from "zod";
 
 import type { Context as ParentContext } from "../index";
 
-import { node as agent } from "./agent";
+import agent from "./agent";
+import { RPCError } from "@kissrpc/jsonrpc";
 
 export type Context = ParentContext;
 
-// r is the rpc helper
-// which is used to define endpoints, routers, and context transformers
-// with a specific context
-const r = k.rpc<Context>();
-
-export const node = r.router({
-	hello: r.endpoint
-		// a `.zod` helper is used here to create a validator from a zod tuple schema
-		.zod(z.string())
-		// handler has a call signature of (context: Context, ...input: Input) => Promise<Output>
-		.handler((ctx, name) => {
-			return `Hello, ${name}!`;
-		}),
-
-	add: r.endpoint
-		.zod(z.number(), z.number())
-		.handler((ctx, a, b) => {
-			return a + b;
-		}),
-
-	subtract: r.endpoint
-		.zod(z.number(), z.number())
-		.handler((ctx, a, b) => {
-			return a - b;
-		}),
-
-	wait: r.endpoint
-		.zod(z.number())
-		// the handler can be an async function
-		.handler(async (ctx, ms) => {
-			await new Promise((resolve) => {
-				setTimeout(() => resolve(ms), ms);
-			});
+export default k.useContext((ctx: Context) => ({
+	hello: k.validateInput(
+		async (name: string) => `Hello, ${name}!`,
+		k.zod(z.string()),
+	),
+	add: k.validateInput(
+		async (a: number, b: number) => a + b,
+		k.zod(z.number(), z.number()),
+	),
+	wait: k.validateInput(
+		async (ms: number) => {
+			await new Promise((resolve) => setTimeout(resolve, ms));
 			return `Waited for ${ms}ms`;
-		}),
-
-	noop: r.endpoint
-		.handler((ctx) => {
-			return null;
-		}),
-
-	// agent is a sub-router node, defined in agent/index.ts
-	agent,
-});
+		},
+		k.zod(z.number()),
+	),
+	error: async () => {
+		throw new RPCError(-32000, "This is a custom error");
+	},
+	echo: async <T>(x: T) => x,
+	agent: k.provideContext(agent, () => ({
+		agent: ctx.req.headers["user-agent"] ?? "Unknown",
+	})),
+}));

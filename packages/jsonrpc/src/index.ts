@@ -1,5 +1,11 @@
 const OriginalErrorSymbol = Symbol("OriginalError");
 
+interface JSONObject {
+	[key: string]: JSONSerializable;
+}
+type JSONArray = JSONSerializable[];
+export type JSONSerializable = string | number | boolean | null | JSONObject | JSONArray;
+
 export interface RPCRequest {
 	jsonrpc: "2.0";
 	id: number | string | null;
@@ -27,6 +33,8 @@ export interface RPCErrorResponse {
 		[OriginalErrorSymbol]?: unknown;
 	};
 }
+
+export type RPCResponse = RPCDataResponse | RPCErrorResponse;
 
 export class RPCError extends Error {
 	constructor(public readonly code: number, message: string, public readonly data?: unknown, public readonly originalError?: unknown) {
@@ -58,39 +66,23 @@ export class InvalidRequestRPCError extends RPCError {
 	}
 }
 
-export type RPCResponse = RPCDataResponse | RPCErrorResponse;
-
-export function parseOneRPCRequest(req: unknown): (RPCRequest | RPCErrorResponse) {
-	const err = (message: string) => ({
-		jsonrpc: "2.0",
-		id: null,
-		error: {
-			code: -32600,
-			message,
-		},
-	} as RPCErrorResponse);
+export function checkRequest(req: unknown): asserts req is RPCRequest {
 	if (typeof req !== "object" || req === null) {
-		return err("Invalid Request");
+		throw new InvalidRequestRPCError("Invalid Request");
 	}
 	const obj = req as Record<string, unknown>;
 	if (obj.jsonrpc !== "2.0") {
-		return err("Invalid JSON-RPC Version");
+		throw new InvalidRequestRPCError("Invalid JSON-RPC version");
 	}
 	if (!obj.hasOwnProperty("id")) {
-		return err("Missing ID");
+		throw new InvalidRequestRPCError("Missing ID");
 	}
 	if (!["string", "number", "null"].includes(typeof obj.id)) {
-		return err("Invalid ID");
+		throw new InvalidRequestRPCError("Invalid ID");
 	}
 	if (typeof obj.method !== "string") {
-		return err("Invalid Method");
+		throw new InvalidRequestRPCError("Invalid method");
 	}
-	return {
-		jsonrpc: "2.0",
-		id: obj.id,
-		method: obj.method,
-		params: obj.params,
-	} as RPCRequest;
 }
 
 function jsonRPCCodeToHTTPStatus(code: number): number {
@@ -104,32 +96,8 @@ function jsonRPCCodeToHTTPStatus(code: number): number {
 	return 500;
 }
 
-export function wrapError(error: unknown): RPCErrorResponse["error"] {
-	if (error instanceof RPCError) {
-		return error.toJSON();
-	}
-	return {
-		code: -32000,
-		message: "Internal Server Error",
-		data: error,
-		[OriginalErrorSymbol]: error,
-	};
-}
-
-export function httpStatusCode(response: RPCResponse | RPCResponse[]): number {
-	if (Array.isArray(response)) {
-		if (response.length === 0) {
-			return 204;
-		}
-		const allCodes = response.map(httpStatusCode);
-		const uniqueCodes = new Set(allCodes);
-		if (uniqueCodes.size === 1) {
-			return allCodes[0];
-		} else {
-			return 207; // Multi-Status
-		}
-	}
-	return "result" in response ? 200 : jsonRPCCodeToHTTPStatus(response.error.code);
+export function httpStatusCode(response: RPCResponse): number {
+	return response.error === undefined ? 200 : jsonRPCCodeToHTTPStatus(response.error.code);
 }
 
 export function originalError(error: RPCErrorResponse["error"]): unknown {
