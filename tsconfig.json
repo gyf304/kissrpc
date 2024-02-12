@@ -14,10 +14,15 @@
 		"jsx": "react-jsx",
 		"allowSyntheticDefaultImports": true,
 		"forceConsistentCasingInFileNames": true,
-		"allowJs": true,
 		"types": ["node"],
 		"paths": {
-			"@kissrpc/*": ["./packages/*/src", "./examples/*/src"],
+			"@kissrpc/jsonrpc": ["./packages/jsonrpc/src"],
+			"@kissrpc/client": ["./packages/client/src"],
+			"@kissrpc/client/*": ["./packages/client/src/*"],
+			"@kissrpc/server": ["./packages/server/src"],
+			"@kissrpc/server/*": ["./packages/server/src/*"],
+			"@kissrpc/helloserver": ["./examples/helloserver/src"],
+			"@kissrpc/helloclient": ["./examples/helloclient/src"],
 		}
 	},
 }

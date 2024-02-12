@@ -10,30 +10,38 @@ therefore allows for a simpler call syntax.
 
 See the [examples](./examples) directory for a more complete example, including using server-side context.
 
+### Server
 ```typescript
-// Server
 import fastify from "fastify";
-import * as k from "@kissrpc/server";
+import * as z from "zod";
 
-const root = {
-	hello: async (name: string) => {
-		return `Hello, ${name}!`;
-	},
-};
-export type Interface = k.ToCaller<typeof root>;
+import { ToCaller, useContext, validateInput, zodValidator } from "@kissrpc/server";
+import { register, FastifyContext } from "@kissrpc/server/jsonrpc";
 
-const app = fastify();
-k.registerJSONRPC(app, root, "/");
-await app.listen({ port: 3000 });
+export type Context = FastifyContext;
+
+const serverRoot = useContext((ctx: Context) => ({
+	hello: validateInput(
+		async (name: string) => `Hello, ${name}, from ${ctx.req.ip}!`,
+		zodValidator(z.string()),
+	),
+	echo: async <T>(x: T) => x,
+}));
+
+export type Interface = ToCaller<typeof serverRoot>;
+
+const server = fastify({ logger: true });
+register(server, serverRoot, "/api/v1/jsonrpc");
+await server.listen({ port: 3000 });
 ```
 
+### Client
 ```typescript
-// Client
-import { client, FetchTransport } from "@kissrpc/client";
-import type { Interface } from "@kissrpc/helloserver";
+import { Client, FetchTransport } from "@kissrpc/client/jsonrpc";
+import type { Interface } from "../server";
 
-const rpc = client<Interface>(new FetchTransport("http://localhost:3000"));
+const rpc = new Client<Interface>(new FetchTransport("http://localhost:3000"));
 
 // Using the client is as simple as calling an async function
-console.log(await rpc.hello("world")); // Hello, world!
+console.log(await rpc.hello("world")); // Hello, world, from ...!
 ```

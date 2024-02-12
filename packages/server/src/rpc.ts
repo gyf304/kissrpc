@@ -1,58 +1,65 @@
 import type * as z from "zod";
 
 const FunctionTypeSymbol = Symbol("FunctionType");
-const MagicSymbol = Symbol("Magic");
+
+// TypeSymbol is used to mark the type of a function,
+// as typescript is a duck-typed language.
+const TypeSymbol = Symbol("Type");
 
 type Awaitable<T> = T | Promise<T>;
-export interface Endpoint {
+
+export interface Endpoint<T = any> {
 	[FunctionTypeSymbol]?: undefined;
-	(...input: any): Promise<any>;
+	// ideally, we would want to specify that an endpoint function
+	// must be using arguments that are subtypes of T, but I don't think
+	// that's possible in typescript.
+	(...input: any[]): Promise<T>;
 }
 
 export interface Validator<Input> {
-	[MagicSymbol]: Input;
+	[TypeSymbol]: Input;
 	(input: unknown): asserts input is Input;
 }
 
-export interface EndpointValidator<E extends Endpoint> {
+export interface EndpointValidator<E extends Endpoint<T>, T = any> {
 	[FunctionTypeSymbol]: "EndpointValidator";
 	(...input: unknown[]): Promise<E>;
 }
 
-export interface ContextUser<Context, N extends Node<Context>> {
+export interface ContextUser<Context, N extends Node<Context, T>, T = any> {
 	[FunctionTypeSymbol]: "ContextUser";
 	(ctx: Context): Promise<N>;
 }
 
-export interface ContextProvider<Context, N extends Node<Context>> {
+export interface ContextProvider<Context, N extends Node<Context, T>, T = any> {
 	[FunctionTypeSymbol]: "ContextProvider";
 	(): Promise<Context>;
 	next: N;
 }
 
-export interface Router<Context> {
-	[path: string]: Node<Context>;
+export interface Router<Context, T = any> {
+	[path: string]: Node<Context, T>;
 }
 
-export type Node<Context> =
-	Router<Context> |
-	EndpointValidator<Endpoint> |
-	Endpoint |
-	ContextUser<Context, any> |
-	ContextProvider<any, any>;
+export type Node<Context, T = any> =
+	Router<Context, T> |
+	EndpointValidator<Endpoint<T>, T> |
+	Endpoint<T> |
+	ContextUser<Context, Node<any, T>, T> |
+	ContextProvider<any, Node<any, T>, T>;
 
-export function useContext<Context, N extends Node<Context>>(f: (ctx: Context) => Awaitable<N>) {
+export function useContext<Context, N extends Node<Context>>(f: (ctx: Context) => Awaitable<N>): ContextUser<Context, N> {
 	const fCopy = async (ctx: Context) => {
 		return await f(ctx);
 	};
-	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextUser" }) as ContextUser<Context, N>;
+	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextUser" }) as any;
 }
 
-export function provideContext<Context, N extends Node<Context>>(next: N, f: () => Awaitable<Context>) {
+export function provideContext<Context, N extends Node<Context>>(next: N, f: () => Awaitable<Context>): ContextProvider<Context, N> {
 	const fCopy = async () => {
 		return await f();
 	}
-	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextProvider", next }) as ContextProvider<Context, N>;
+	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextProvider", next }) as any;
 }
 
 export function validateInput<E extends Endpoint, Input extends Parameters<E>>(e: E, v: Validator<Input>) {
@@ -63,7 +70,7 @@ export function validateInput<E extends Endpoint, Input extends Parameters<E>>(e
 	return Object.assign(endpointValidator, { [FunctionTypeSymbol]: "EndpointValidator" }) as EndpointValidator<E>;
 }
 
-export function zod<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(...types: T): Validator<T extends [] ? [] : { [K in keyof T]: z.input<T[K]> }> {
+export function zodValidator<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(...types: T): Validator<T extends [] ? [] : { [K in keyof T]: z.input<T[K]> }> {
 	const validator = ((input: unknown) => {
 		if (!Array.isArray(input)) {
 			// TODO: throw a better error
@@ -89,9 +96,19 @@ export function zod<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(...types: 
 export type ToCaller<N extends Node<any>> =
 	N extends Endpoint ? N :
 	N extends EndpointValidator<infer E> ? E :
-	N extends ContextUser<any, infer N2> ? ToCaller<N2> :
+	N extends ContextUser<any, infer N2> ? ToCaller<N2>:
 	N extends ContextProvider<any, infer N2> ? ToCaller<N2> :
 	N extends Router<any> ? { [K in keyof N]: ToCaller<N[K]> } :
+	never;
+
+export type ToIOTypes<N extends Node<any>> =
+	N extends Endpoint ?
+		(unknown extends Parameters<N>[number] ? never : Parameters<N>[number]) |
+		(unknown extends Awaited<ReturnType<N>> ? never : Awaited<ReturnType<N>>) :
+	N extends EndpointValidator<infer E> ? ToIOTypes<E> :
+	N extends ContextUser<any, infer N2> ? ToIOTypes<N2> :
+	N extends ContextProvider<any, infer N2> ? ToIOTypes<N2> :
+	N extends Router<any> ? ToIOTypes<N[keyof N]> :
 	never;
 
 export class NotFoundError extends Error {

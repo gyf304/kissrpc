@@ -36,6 +36,56 @@ export interface RPCErrorResponse {
 
 export type RPCResponse = RPCDataResponse | RPCErrorResponse;
 
+// ServerInfo extension
+export interface ServerInfo {
+	name: string;
+	supportedExtensions: string[];
+}
+
+export interface ServerInfoRPCRequest extends RPCRequest {
+	method: "rpc.server";
+	params: any;
+}
+
+export interface ServerInfoRPCResponse extends RPCDataResponse {
+	result: ServerInfo;
+}
+
+// rpc.pipelined extension
+interface RPCRequestWithID extends RPCRequest {
+	id: number | string;
+}
+
+export interface PipelinedRPCRequest extends RPCRequest {
+	jsonrpc: "2.0";
+	id: number | string | null;
+	method: "rpc.pipelined";
+	params: {
+		// specify requests to be pipelined, note that the requests may not
+		// be executed in the order they are specified, but depending on the
+		// mapping dependencies, and the server's implementation.
+		requests: RPCRequestWithID[];
+		// specify mappings. the results of the requests, specified by the from
+		// property, will be mapped to requests specified by the to property. those
+		// paths are specified as arrays of strings or numbers, where strings are
+		// object keys and numbers are array indices.
+		// the target field is expected to placeholded by null.
+		mapping: {
+			from: number | string;
+			to: {
+				id: number | string;
+				path: (string | number)[];
+			}
+		}[];
+		// specify which requests to return, specified by IDs
+		returns: (string | number)[];
+	};
+}
+
+export interface PipelinedRPCResponse extends RPCDataResponse {
+	result: RPCRequestWithID[];
+}
+
 export class RPCError extends Error {
 	constructor(public readonly code: number, message: string, public readonly data?: unknown, public readonly originalError?: unknown) {
 		super(message);

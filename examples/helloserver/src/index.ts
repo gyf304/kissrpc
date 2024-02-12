@@ -1,28 +1,48 @@
-import * as fastify from "fastify";
+import fastify from "fastify";
 import express from "express";
-import * as k from "@kissrpc/server";
+
+import { ToCaller } from "@kissrpc/server";
+import { register, FastifyContext, ExpressContext, Options } from "@kissrpc/server/jsonrpc";
 
 import root from "./root";
+import { RPCError } from "@kissrpc/jsonrpc";
 
 /*
 Context is a server-only construct that is used to track information
 that is private to the server. This can be used to store information
 such as the request and response objects, the user, etc.
 */
-export type Context = k.FastifyContext | k.ExpressContext;
+export type Context = FastifyContext | ExpressContext;
 
-export type Interface = k.ToCaller<typeof root>;
+export type Interface = ToCaller<typeof root>;
 
 const SERVER_TYPE = process.env.SERVER_TYPE || "fastify";
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
+/*
+KissRPC has out-of-the-box support for serving JSON-RPC over both
+Fastify and Express. This means that if you use either Fastify or
+Express, you can seamlessly plug in KissRPC.
+*/
+
+const options: Options = {
+	// Specify an error handler to handle errors and optionally return
+	// a JSONRPC error response
+	errorHandler: (error) => {
+		return new RPCError(
+			-32000,
+			error instanceof Error ? error.message : "Unknown error"
+		);
+	},
+};
+
 if (SERVER_TYPE === "fastify") {
-	const server = fastify.fastify({ logger: true });
-	k.registerJSONRPC(server, root, "/");
+	const server = fastify({ logger: true });
+	register(server, root, "/api/v1/jsonrpc", options);
 	await server.listen({ port: PORT });
 } else if (SERVER_TYPE === "express") {
 	const server = express();
-	k.registerJSONRPC(server, root, "/");
+	register(server, root, "/api/v1/jsonrpc", options);
 	server.listen(PORT);
 } else {
 	throw new Error("Unknown server type");

@@ -6,6 +6,16 @@
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./jsonrpc": {
+      "import": "./dist/esm/jsonrpc/index.js",
+      "require": "./dist/cjs/jsonrpc/index.js"
+    }
+  },
   "peerDependencies": {
     "@types/express": "^4.17.21",
     "express": "^4.18.0",

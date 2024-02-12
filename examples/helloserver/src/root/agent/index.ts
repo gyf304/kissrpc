@@ -12,6 +12,6 @@ export interface Context {
 export default k.useContext((ctx: Context) => ({
 	hello: k.validateInput(
 		async (name: string) => `Hello, ${name}! You are using ${ctx.agent}`,
-		k.zod(z.string()),
+		k.zodValidator(z.string()),
 	),
 }));
