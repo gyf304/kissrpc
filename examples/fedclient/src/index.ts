@@ -1,8 +1,9 @@
-import { Client, FetchTransport } from "@kissrpc/client/jsonrpc";
+import { Client } from "@kissrpc/client";
+import { FetchRequester } from "@kissrpc/client/jsonrpc";
 import type { Interface } from "@kissrpc/fedserver";
 
 const rpc = new Client<Interface>(
-	new FetchTransport("http://localhost:3001/api/v1/jsonrpc")
+	new FetchRequester("http://localhost:3001/api/v1/jsonrpc")
 );
 
 console.log(await rpc.federated.hello("world"));

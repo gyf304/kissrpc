@@ -5,7 +5,8 @@ import { ToCaller, Node } from "@kissrpc/server";
 import { register, FastifyContext, ExpressContext, Options } from "@kissrpc/server/jsonrpc";
 
 import { RPCError } from "@kissrpc/jsonrpc";
-import { Client, FetchTransport } from "@kissrpc/client/jsonrpc";
+import { Client } from "@kissrpc/client";
+import { FetchRequester } from "@kissrpc/client/jsonrpc";
 
 import type { Interface as FederatedInterface } from "@kissrpc/helloserver";
 
@@ -20,7 +21,7 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 First, create a client for the federation target
 */
 const federatedClient = new Client<FederatedInterface>(
-	new FetchTransport("http://localhost:3000/api/v1/jsonrpc")
+	new FetchRequester("http://localhost:3000/api/v1/jsonrpc")
 );
 
 /* Then, use the federated client as a path in the server */

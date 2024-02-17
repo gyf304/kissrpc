@@ -1,8 +1,9 @@
-import { Client, FetchTransport } from "@kissrpc/client/jsonrpc";
+import { Client } from "@kissrpc/client";
+import { FetchRequester } from "@kissrpc/client/jsonrpc";
 import type { Interface } from "@kissrpc/helloserver";
 
 const rpc = new Client<Interface>(
-	new FetchTransport("http://localhost:3000/api/v1/jsonrpc")
+	new FetchRequester("http://localhost:3000/api/v1/jsonrpc")
 );
 
 // Using the client is as simple as calling an async function
