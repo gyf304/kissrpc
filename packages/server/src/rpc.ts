@@ -145,14 +145,11 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 		}
 	}
 
-	if (typeof node !== "object") {
-		throw new NotFoundError();
-	}
-
-	const next = node[path[0]];
+	const next = (node as Router<any>)[path[0]];
 	if (next === undefined) {
 		throw new NotFoundError();
 	}
+
 	const rest = path.slice(1);
 	return await contextedCall(next, rest, ctx, args);
 }

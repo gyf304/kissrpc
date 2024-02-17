@@ -1,9 +1,11 @@
 {
-  "name": "@kissrpc/helloclient",
+  "name": "@kissrpc/fedserver",
   "private": true,
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
+    "@types/express": "^4.17.21",
+    "anyjspm": "^0.0.3",
     "bun-types": "latest",
     "@kissrpc/helloserver": "workspace:*"
   },
@@ -12,7 +14,8 @@
     "zod": "^3.22.4"
   },
   "dependencies": {
-    "@kissrpc/client": "workspace:*",
+    "@kissrpc/server": "workspace:*",
+    "express": "^4.18.2",
     "fastify": "^4.26.0"
   },
   "scripts": {

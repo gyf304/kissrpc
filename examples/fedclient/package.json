@@ -1,11 +1,11 @@
 {
-  "name": "@kissrpc/helloclient",
+  "name": "@kissrpc/fedclient",
   "private": true,
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
     "bun-types": "latest",
-    "@kissrpc/helloserver": "workspace:*"
+    "@kissrpc/fedserver": "workspace:*r"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",

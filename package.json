@@ -8,6 +8,10 @@
 	"resolutions": {
 		"@kissrpc/jsonrpc": "workspace:packages/jsonrpc",
 		"@kissrpc/server": "workspace:packages/server",
-		"@kissrpc/client": "workspace:packages/client"
+		"@kissrpc/client": "workspace:packages/client",
+		"@kissrpc/helloserver": "workspace:examples/helloserver",
+		"@kissrpc/helloclient": "workspace:examples/helloclient",
+		"@kissrpc/fedserver": "workspace:examples/fedserver",
+		"@kissrpc/fedclient": "workspace:examples/fedclient"
 	}
 }

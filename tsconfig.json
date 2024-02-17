@@ -23,6 +23,8 @@
 			"@kissrpc/server/*": ["./packages/server/src/*"],
 			"@kissrpc/helloserver": ["./examples/helloserver/src"],
 			"@kissrpc/helloclient": ["./examples/helloclient/src"],
+			"@kissrpc/fedserver": ["./examples/fedserver/src"],
+			"@kissrpc/fedclient": ["./examples/fedclient/src"],
 		}
 	},
 }

@@ -29,7 +29,11 @@ function checkRPCResponse(req: RPCRequest, res: unknown): asserts res is RPCResp
 
 class RPCClientImpl {
 	private id = 1;
-	constructor (public readonly transport: RoundTripper) {}
+	constructor (public readonly transport: RoundTripper) {
+		this.request = this.request.bind(this);
+		this.makeClient = this.makeClient.bind(this);
+		this.makeRequester = this.makeRequester.bind(this);
+	}
 
 	private request(path: string[], args: any[]): Promise<any> {
 		return this.transport.roundTrip({
@@ -52,7 +56,10 @@ class RPCClientImpl {
 	public makeClient(path: string[] = []): any {
 		const self = this;
 		return new Proxy(self.makeRequester(path), {
-			get(_, key: string) {
+			get(_, key: unknown) {
+				if (typeof key !== "string" || key === "constructor" || key === "prototype") {
+					return undefined;
+				}
 				return self.makeClient([...path, key]);
 			},
 		});
