@@ -8,12 +8,12 @@ const TypeSymbol = Symbol("Type");
 
 type Awaitable<T> = T | Promise<T>;
 
-export interface Endpoint<T = any> {
+export interface Procedure {
 	[FunctionTypeSymbol]?: undefined;
 	// ideally, we would want to specify that an endpoint function
 	// must be using arguments that are subtypes of T, but I don't think
 	// that's possible in typescript.
-	(...input: any[]): Promise<T>;
+	(...input: any[]): Promise<any>;
 }
 
 export interface Validator<Input> {
@@ -21,32 +21,32 @@ export interface Validator<Input> {
 	(input: unknown): asserts input is Input;
 }
 
-export interface EndpointValidator<E extends Endpoint<T>, T = any> {
-	[FunctionTypeSymbol]: "EndpointValidator";
+export interface ParametersValidator<E extends Procedure> {
+	[FunctionTypeSymbol]: "ParametersValidator";
 	(...input: unknown[]): Promise<E>;
 }
 
-export interface ContextUser<Context, N extends Node<Context, T>, T = any> {
+export interface ContextUser<Context, N extends Node<Context>> {
 	[FunctionTypeSymbol]: "ContextUser";
 	(ctx: Context): Promise<N>;
 }
 
-export interface ContextProvider<Context, N extends Node<Context, T>, T = any> {
+export interface ContextProvider<Context, N extends Node<Context>> {
 	[FunctionTypeSymbol]: "ContextProvider";
 	(): Promise<Context>;
 	next: N;
 }
 
-export interface Router<Context, T = any> {
-	[path: string]: Node<Context, T>;
+export interface Router<Context> {
+	[path: string]: Node<Context>;
 }
 
-export type Node<Context, T = any> =
-	Router<Context, T> |
-	EndpointValidator<Endpoint<T>, T> |
-	Endpoint<T> |
-	ContextUser<Context, Node<any, T>, T> |
-	ContextProvider<any, Node<any, T>, T>;
+export type Node<Context> =
+	Router<Context> |
+	ParametersValidator<Procedure> |
+	Procedure |
+	ContextUser<Context, Node<any>> |
+	ContextProvider<any, Node<any>>;
 
 export function useContext<Context, N extends Node<Context>>(f: (ctx: Context) => Awaitable<N>): ContextUser<Context, N> {
 	const fCopy = async (ctx: Context) => {
@@ -62,12 +62,12 @@ export function provideContext<Context, N extends Node<Context>>(next: N, f: () 
 	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextProvider", next }) as any;
 }
 
-export function validateInput<E extends Endpoint, Input extends Parameters<E>>(e: E, v: Validator<Input>) {
+export function validateInput<E extends Procedure, Input extends Parameters<E>>(e: E, v: Validator<Input>) {
 	const endpointValidator = async (...input: unknown[]) => {
 		v(input);
 		return e;
 	};
-	return Object.assign(endpointValidator, { [FunctionTypeSymbol]: "EndpointValidator" }) as EndpointValidator<E>;
+	return Object.assign(endpointValidator, { [FunctionTypeSymbol]: "ParametersValidator" }) as ParametersValidator<E>;
 }
 
 export function zodValidator<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(...types: T): Validator<T extends [] ? [] : { [K in keyof T]: z.input<T[K]> }> {
@@ -93,27 +93,28 @@ export function zodValidator<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(.
 	return validator as unknown as any;
 }
 
-export type ToCaller<N extends Node<any>> =
-	N extends Endpoint ? N :
-	N extends EndpointValidator<infer E> ? E :
-	N extends ContextUser<any, infer N2> ? ToCaller<N2>:
-	N extends ContextProvider<any, infer N2> ? ToCaller<N2> :
-	N extends Router<any> ? { [K in keyof N]: ToCaller<N[K]> } :
-	never;
+type ParametersSerializable<E extends Procedure, T> =
+	Parameters<E> extends [] ? true :
+	Parameters<E>[number] extends T ? true : false;
 
-export type ToIOTypes<N extends Node<any>> =
-	N extends Endpoint ?
-		(unknown extends Parameters<N>[number] ? never : Parameters<N>[number]) |
-		(unknown extends Awaited<ReturnType<N>> ? never : Awaited<ReturnType<N>>) :
-	N extends EndpointValidator<infer E> ? ToIOTypes<E> :
-	N extends ContextUser<any, infer N2> ? ToIOTypes<N2> :
-	N extends ContextProvider<any, infer N2> ? ToIOTypes<N2> :
-	N extends Router<any> ? ToIOTypes<N[keyof N]> :
+type ReturnTypeSerializable<E extends Procedure, T> =
+	Awaited<ReturnType<E>> extends T ? true : false;
+
+export type ToInterface<N extends Node<any>, T> =
+	N extends Procedure ? (
+		ParametersSerializable<N, T> extends true ? (
+			ReturnTypeSerializable<N, T> extends true ? N : "Output not serializable"
+		) : "Input not serializable"
+	) :
+	N extends ParametersValidator<infer E> ? E :
+	N extends ContextUser<any, infer N2> ? ToInterface<N2, T>:
+	N extends ContextProvider<any, infer N2> ? ToInterface<N2, T> :
+	N extends Router<any> ? { [K in keyof N]: ToInterface<N[K], T> } :
 	never;
 
 export class NotFoundError extends Error {
 	constructor() {
-		super("Endpoint not found");
+		super("Procedure not found");
 	}
 }
 
@@ -135,7 +136,7 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 			throw new NotFoundError();
 		}
 		const functionType = node[FunctionTypeSymbol];
-		if (functionType === "EndpointValidator") {
+		if (functionType === "ParametersValidator") {
 			const fn = await node(...args);
 			return await fn(...args);
 		} else if (functionType === undefined) {
@@ -154,14 +155,14 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 	return await contextedCall(next, rest, ctx, args);
 }
 
-function createCallerImpl(root: Node<any>, ctx: any, path: string[]): any {
+function createInterfaceImpl(root: Node<any>, ctx: any, path: string[]): any {
 	return new Proxy((...args: any[]) => contextedCall(root, path, ctx, args), {
 		get(_, key: string) {
-			return createCallerImpl(ctx, root, [...path, key]);
+			return createInterfaceImpl(ctx, root, [...path, key]);
 		},
 	});
 }
 
-export function createCaller<Context, N extends Node<Context>>(node: N, ctx: Context): ToCaller<N> {
-	return createCallerImpl(node, ctx, []);
+export function createInterface<Context, N extends Node<Context>>(node: N, ctx: Context): ToInterface<N, any> {
+	return createInterfaceImpl(node, ctx, []);
 }

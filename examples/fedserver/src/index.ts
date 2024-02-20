@@ -1,10 +1,10 @@
 import fastify from "fastify";
 import express from "express";
 
-import { ToCaller, Node } from "@kissrpc/server";
-import { register, FastifyContext, ExpressContext, Options } from "@kissrpc/server/jsonrpc";
+import { ToInterface, Node } from "@kissrpc/server";
+import { register, FastifyContext, ExpressContext } from "@kissrpc/server/jsonrpc";
 
-import { RPCError } from "@kissrpc/jsonrpc";
+import { JSONSerializable } from "@kissrpc/jsonrpc";
 import { Client } from "@kissrpc/client";
 import { FetchRequester } from "@kissrpc/client/jsonrpc";
 
@@ -12,7 +12,7 @@ import type { Interface as FederatedInterface } from "@kissrpc/helloserver";
 
 export type Context = FastifyContext | ExpressContext;
 
-export type Interface = ToCaller<typeof root>;
+export type Interface = ToInterface<typeof root, JSONSerializable>;
 
 const SERVER_TYPE = process.env.SERVER_TYPE || "fastify";
 const PORT = parseInt(process.env.PORT || "3001", 10);

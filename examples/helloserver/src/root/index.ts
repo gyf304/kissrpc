@@ -4,6 +4,7 @@ import * as z from "zod";
 import type { Context as ParentContext } from "../index";
 
 import agent from "./agent";
+import { JSONSerializable } from "@kissrpc/jsonrpc";
 
 export type Context = ParentContext;
 
@@ -26,7 +27,7 @@ export default k.useContext((ctx: Context) => ({
 	error: async () => {
 		throw new Error("This is a custom error");
 	},
-	echo: async <T>(x: T) => x,
+	echo: async <T extends JSONSerializable>(x: T) => x,
 	agent: k.provideContext(agent, () => ({
 		agent: ctx.req.headers["user-agent"] ?? "Unknown",
 	})),

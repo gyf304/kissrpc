@@ -2,7 +2,7 @@ import type * as express from "express";
 import type * as fastify from "fastify";
 
 import { contextedCall, NotFoundError, type Node } from "../rpc.js";
-import type { JSONSerializable, RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
+import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
 import { RPCError, httpStatusCode, checkRequest } from "@kissrpc/jsonrpc";
 
 export interface FastifyContext {
@@ -28,7 +28,7 @@ export function register<
 	C extends (S extends fastify.FastifyInstance ? FastifyContext : ExpressContext),
 >(
 	server: S,
-	root: Node<C, JSONSerializable>,
+	root: Node<C>,
 	path: string = "/",
 	options?: Options,
 ): void {

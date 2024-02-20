@@ -15,7 +15,8 @@ See the [examples](./examples) directory for a more complete example, including 
 import fastify from "fastify";
 import * as z from "zod";
 
-import { ToCaller, useContext, validateInput, zodValidator } from "@kissrpc/server";
+import type { JSONSerializable } from "@kissrpc/jsonrpc";
+import { ToInterface, useContext, validateInput, zodValidator } from "@kissrpc/server";
 import { register, FastifyContext } from "@kissrpc/server/jsonrpc";
 
 export type Context = FastifyContext;
@@ -28,7 +29,7 @@ const serverRoot = useContext((ctx: Context) => ({
 	echo: async <T>(x: T) => x,
 }));
 
-export type Interface = ToCaller<typeof serverRoot>;
+export type Interface = ToInterface<typeof serverRoot, JSONSerializable>;
 
 const server = fastify({ logger: true });
 register(server, serverRoot, "/api/v1/jsonrpc");

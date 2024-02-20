@@ -3,10 +3,42 @@ export interface Interface {
 }
 
 export interface Requester {
+	supportsPipelining?: boolean;
 	request(path: string[], args: unknown[]): Promise<unknown>;
 }
 
-export class RoundTripperError extends Error {}
+function purify(value: unknown, strict: boolean): unknown {
+	const type = typeof value;
+	switch (type) {
+		case "string":
+		case "number":
+		case "boolean":
+		case "undefined":
+		case "bigint":
+			return value;
+		case "object":
+		case "function":
+			if (value === null) {
+				return null;
+			}
+			if (value === undefined) {
+				return undefined;
+			}
+			if (Array.isArray(value)) {
+				return value.map((v) => purify(v, strict));
+			}
+			if (strict && value?.constructor !== Object) {
+				throw new Error(`${value.toString()} is not a plain object`);
+			}
+			const obj: Record<string, unknown> = {};
+			for (const key of Object.keys(value)) {
+				obj[key] = purify((value as Record<string, unknown>)[key], strict);
+			}
+			return obj;
+		default:
+			throw new Error(`Unsupported type: ${type}`);
+	}
+}
 
 class RPCClientImpl {
 	constructor (public readonly requester: Requester) {
@@ -15,7 +47,9 @@ class RPCClientImpl {
 	}
 
 	private makeRequester(path: string[]): (...args: any[]) => Promise<any> {
-		return (...args: any[]) => this.requester.request(path, args);
+		return (...args: any[]) => {
+			return this.requester.request(path, purify(args, true) as unknown[]);
+		};
 	}
 
 	public makeClient(path: string[] = []): any {

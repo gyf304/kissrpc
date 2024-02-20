@@ -1,11 +1,11 @@
 import fastify from "fastify";
 import express from "express";
 
-import { ToCaller } from "@kissrpc/server";
+import { ToInterface } from "@kissrpc/server";
 import { register, FastifyContext, ExpressContext, Options } from "@kissrpc/server/jsonrpc";
 
 import root from "./root";
-import { RPCError } from "@kissrpc/jsonrpc";
+import { JSONSerializable, RPCError } from "@kissrpc/jsonrpc";
 
 /*
 Context is a server-only construct that is used to track information
@@ -14,7 +14,7 @@ such as the request and response objects, the user, etc.
 */
 export type Context = FastifyContext | ExpressContext;
 
-export type Interface = ToCaller<typeof root>;
+export type Interface = ToInterface<typeof root, JSONSerializable>;
 
 const SERVER_TYPE = process.env.SERVER_TYPE || "fastify";
 const PORT = parseInt(process.env.PORT || "3000", 10);

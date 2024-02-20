@@ -2,20 +2,22 @@ import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
 export type { RPCRequest, RPCResponse };
 
 import { RPCError } from "@kissrpc/jsonrpc";
-import type { Requester } from "../rpc.js";
+import type { PipelinedRPCRequest, PipelinedRPCResponse } from "@kissrpc/jsonrpc";
+import { type Requester } from "../rpc.js";
+import { ImproperUseOfPipelinedPromiseError, LazyPromise } from "../pipelining.js";
 
-export class RequesterError extends Error { }
+export class FetchRequesterError extends Error { }
 
 function checkRPCResponse(req: RPCRequest, res: unknown): asserts res is RPCResponse {
 	if (typeof res !== "object" || res === null) {
-		throw new RequesterError("Invalid response");
+		throw new FetchRequesterError("Invalid response");
 	}
 	const obj = res as Record<string, unknown>;
 	if (obj.jsonrpc !== "2.0") {
-		throw new RequesterError("Invalid JSON-RPC version");
+		throw new FetchRequesterError("Invalid JSON-RPC version");
 	}
 	if (obj.id !== req.id) {
-		throw new RequesterError("Invalid response ID");
+		throw new FetchRequesterError("Invalid response ID");
 	}
 }
 interface FullFetchRequesterOptions {
@@ -74,6 +76,15 @@ export class FetchRequester implements Requester {
 
 		if (batch.length === 1) {
 			const req = batch[0].request;
+			let stringified: string;
+			try {
+				stringified = JSON.stringify(req);
+			} catch (e) {
+				if (e instanceof ImproperUseOfPipelinedPromiseError) {
+					throw new FetchRequesterError("FetchRequester does not support pipelined requests");
+				}
+				throw e;
+			}
 			const res = await fetch(this.url, {
 				signal: AbortSignal.timeout(this.options.timeoutMs),
 				...this.options.init,
@@ -81,13 +92,22 @@ export class FetchRequester implements Requester {
 					...this.options.init.headers,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify(req),
+				body: stringified,
 			});
 			const result = await res.json();
 			checkRPCResponse(req, result);
 			batch[0].resolve(result);
 		} else {
 			const requests = batch.map((req) => req.request);
+			let stringified: string;
+			try {
+				stringified = JSON.stringify(requests);
+			} catch (e) {
+				if (e instanceof ImproperUseOfPipelinedPromiseError) {
+					throw new FetchRequesterError("FetchRequester does not support pipelined requests");
+				}
+				throw e;
+			}
 
 			const res = await fetch(this.url, {
 				signal: AbortSignal.timeout(this.options.timeoutMs),
@@ -96,15 +116,15 @@ export class FetchRequester implements Requester {
 					...this.options.init.headers,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify(requests),
+				body: stringified,
 			});
 
 			const results = await res.json();
 			if (!Array.isArray(results)) {
-				throw new RequesterError("Invalid response");
+				throw new FetchRequesterError("Invalid response");
 			}
 			if (results.length !== requests.length) {
-				throw new RequesterError("Invalid response");
+				throw new FetchRequesterError("Invalid response");
 			}
 			for (let i = 0; i < requests.length; i++) {
 				const req = batch[i];
@@ -146,5 +166,26 @@ export class FetchRequester implements Requester {
 			throw new RPCError(resp.error.code, resp.error.message, resp.error.data);
 		}
 		return resp.result;
+	}
+}
+
+export class PipelinedFetchRequester implements Requester {
+	private id = 1;
+	private options: FullFetchRequesterOptions;
+	private pendingPromises = new Set<LazyPromise<unknown>>();
+
+	constructor(private url: string, options?: FetchRequesterOptions) {
+		this.options = { ...fetchTransportOptionsDefault, ...options };
+		this.request = this.request.bind(this);
+	}
+
+	public request(path: string[], args: unknown[]): Promise<unknown> {
+		const lazyPromise = new LazyPromise(async () => {
+			this.pendingPromises.delete(lazyPromise);
+			// TODO: Implement pipelined requests
+			throw new Error("Not implemented");
+		});
+		this.pendingPromises.add(lazyPromise);
+		return lazyPromise;
 	}
 }
