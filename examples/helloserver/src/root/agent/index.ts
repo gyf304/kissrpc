@@ -1,4 +1,4 @@
-import * as k from "@kissrpc/server";
+import { useContext, validateParameters, zodValidator } from "@kissrpc/server";
 import * as z from "zod";
 
 // We define a new context here
@@ -9,9 +9,9 @@ export interface Context {
 
 // Since the context of the router we are defining is different from the parent context,
 // we need to transform the context to the new context
-export default k.useContext((ctx: Context) => ({
-	hello: k.validateInput(
+export default useContext((ctx: Context) => ({
+	hello: validateParameters(
 		async (name: string) => `Hello, ${name}! You are using ${ctx.agent}`,
-		k.zodValidator(z.string()),
+		zodValidator(z.string()),
 	),
 }));

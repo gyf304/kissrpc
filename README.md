@@ -16,13 +16,13 @@ import fastify from "fastify";
 import * as z from "zod";
 
 import type { JSONSerializable } from "@kissrpc/jsonrpc";
-import { ToInterface, useContext, validateInput, zodValidator } from "@kissrpc/server";
+import { ToInterface, useContext, validateParameters, zodValidator } from "@kissrpc/server";
 import { register, FastifyContext } from "@kissrpc/server/jsonrpc";
 
 export type Context = FastifyContext;
 
 const serverRoot = useContext((ctx: Context) => ({
-	hello: validateInput(
+	hello: validateParameters(
 		async (name: string) => `Hello, ${name}, from ${ctx.req.ip}!`,
 		zodValidator(z.string()),
 	),

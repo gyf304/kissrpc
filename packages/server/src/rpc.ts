@@ -18,12 +18,13 @@ export interface Procedure {
 
 export interface Validator<Input> {
 	[TypeSymbol]: Input;
-	(input: unknown): asserts input is Input;
+	(...input: unknown[]): Promise<void>;
 }
 
 export interface ParametersValidator<E extends Procedure> {
 	[FunctionTypeSymbol]: "ParametersValidator";
-	(...input: unknown[]): Promise<E>;
+	(...input: unknown[]): Promise<void>;
+	next: E;
 }
 
 export interface ContextUser<Context, N extends Node<Context>> {
@@ -62,12 +63,14 @@ export function provideContext<Context, N extends Node<Context>>(next: N, f: () 
 	return Object.assign(fCopy, { [FunctionTypeSymbol]: "ContextProvider", next }) as any;
 }
 
-export function validateInput<E extends Procedure, Input extends Parameters<E>>(e: E, v: Validator<Input>) {
-	const endpointValidator = async (...input: unknown[]) => {
-		v(input);
-		return e;
+export function validateParameters<E extends Procedure, Input extends Parameters<E>>(e: E, v: Validator<Input>) {
+	const parametersValidator = async (...input: unknown[]) => {
+		await v(input);
 	};
-	return Object.assign(endpointValidator, { [FunctionTypeSymbol]: "ParametersValidator" }) as ParametersValidator<E>;
+	return Object.assign(parametersValidator, {
+		[FunctionTypeSymbol]: "ParametersValidator",
+		next: e,
+	}) as ParametersValidator<E>;
 }
 
 export function zodValidator<T extends [] | [z.ZodTypeAny, ...z.ZodTypeAny[]]>(...types: T): Validator<T extends [] ? [] : { [K in keyof T]: z.input<T[K]> }> {
@@ -137,7 +140,8 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 		}
 		const functionType = node[FunctionTypeSymbol];
 		if (functionType === "ParametersValidator") {
-			const fn = await node(...args);
+			await node(...args);
+			const fn = node.next;
 			return await fn(...args);
 		} else if (functionType === undefined) {
 			return await node(...args);
@@ -155,14 +159,14 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 	return await contextedCall(next, rest, ctx, args);
 }
 
-function createInterfaceImpl(root: Node<any>, ctx: any, path: string[]): any {
+function createLocalInterfaceImpl(root: Node<any>, ctx: any, path: string[]): any {
 	return new Proxy((...args: any[]) => contextedCall(root, path, ctx, args), {
 		get(_, key: string) {
-			return createInterfaceImpl(ctx, root, [...path, key]);
+			return createLocalInterfaceImpl(ctx, root, [...path, key]);
 		},
 	});
 }
 
-export function createInterface<Context, N extends Node<Context>>(node: N, ctx: Context): ToInterface<N, any> {
-	return createInterfaceImpl(node, ctx, []);
+export function createLocalInterface<Context, N extends Node<Context>>(node: N, ctx: Context): ToInterface<N, any> {
+	return createLocalInterfaceImpl(node, ctx, []);
 }
