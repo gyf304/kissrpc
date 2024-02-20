@@ -10,9 +10,6 @@ type Awaitable<T> = T | Promise<T>;
 
 export interface Procedure {
 	[FunctionTypeSymbol]?: undefined;
-	// ideally, we would want to specify that an endpoint function
-	// must be using arguments that are subtypes of T, but I don't think
-	// that's possible in typescript.
 	(...input: any[]): Promise<any>;
 }
 
@@ -121,16 +118,18 @@ export class NotFoundError extends Error {
 	}
 }
 
-export async function contextedCall<Context, N extends Node<Context>>(node: N, path: string[], ctx: Context, args: unknown[]) {
+async function contextedCallImpl<Context, N extends Node<Context>>(
+	node: N, path: string[], ctx: Context, args: unknown[], noValidate: boolean
+) {
 	if (typeof node === "function") {
 		const functionType = node[FunctionTypeSymbol];
 		if (functionType === "ContextProvider") {
 			const next = node.next as Node<Context>;
 			const newContext = await node();
-			return await contextedCall(next, path, newContext, args);
+			return await contextedCallImpl(next, path, newContext, args, noValidate);
 		} else if (functionType === "ContextUser") {
 			const next = await node(ctx);
-			return await contextedCall(next, path, ctx, args);
+			return await contextedCallImpl(next, path, ctx, args, noValidate);
 		}
 	}
 
@@ -140,7 +139,9 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 		}
 		const functionType = node[FunctionTypeSymbol];
 		if (functionType === "ParametersValidator") {
-			await node(...args);
+			if (!noValidate) {
+				await node(...args);
+			}
 			const fn = node.next;
 			return await fn(...args);
 		} else if (functionType === undefined) {
@@ -156,17 +157,42 @@ export async function contextedCall<Context, N extends Node<Context>>(node: N, p
 	}
 
 	const rest = path.slice(1);
-	return await contextedCall(next, rest, ctx, args);
+	return await contextedCallImpl(next, rest, ctx, args, noValidate);
 }
 
-function createLocalInterfaceImpl(root: Node<any>, ctx: any, path: string[]): any {
-	return new Proxy((...args: any[]) => contextedCall(root, path, ctx, args), {
+const validPathRegex = /^[a-zA-Z0-9_]+$/;
+const illegalPaths = new Set([
+	"constructor",
+	"prototype",
+	"__proto__",
+]);
+
+export function contextedCall<Context, N extends Node<Context>>(
+	node: N, path: string[], ctx: Context, args: unknown[], noValidate?: boolean
+) {
+	for (const p of path) {
+		if (!validPathRegex.test(p)) {
+			throw new Error(`Invalid path: ${p}, must match ${validPathRegex}`);
+		}
+		if (illegalPaths.has(p)) {
+			throw new Error(`Invalid path: ${p}, cannot be a reserved word (${Array.from(illegalPaths).join(", ")})`);
+		}
+	}
+	return contextedCallImpl(node, path, ctx, args, noValidate ?? false);
+}
+
+function createLocalInterfaceImpl(
+	root: Node<any>, ctx: any, path: string[], noValidate?: boolean
+): any {
+	return new Proxy((...args: any[]) => contextedCall(root, path, ctx, args, noValidate), {
 		get(_, key: string) {
-			return createLocalInterfaceImpl(ctx, root, [...path, key]);
+			return createLocalInterfaceImpl(ctx, root, [...path, key], noValidate);
 		},
 	});
 }
 
-export function createLocalInterface<Context, N extends Node<Context>>(node: N, ctx: Context): ToInterface<N, any> {
-	return createLocalInterfaceImpl(node, ctx, []);
+export function createLocalInterface<Context, N extends Node<Context>>(
+	node: N, ctx: Context, noValidate?: boolean
+): ToInterface<N, any> {
+	return createLocalInterfaceImpl(node, ctx, [], noValidate);
 }
