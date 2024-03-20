@@ -160,7 +160,6 @@ async function contextedCallImpl<Context, N extends Node<Context>>(
 	return await contextedCallImpl(next, rest, ctx, args, noValidate);
 }
 
-const validPathRegex = /^[a-zA-Z0-9_]+$/;
 const illegalPaths = new Set([
 	"constructor",
 	"prototype",
@@ -171,8 +170,8 @@ export function contextedCall<Context, N extends Node<Context>>(
 	node: N, path: string[], ctx: Context, args: unknown[], noValidate?: boolean
 ) {
 	for (const p of path) {
-		if (!validPathRegex.test(p)) {
-			throw new Error(`Invalid path: ${p}, must match ${validPathRegex}`);
+		if (p.indexOf(".") !== -1) {
+			throw new Error(`Invalid path: ${p}, cannot contain "."`);
 		}
 		if (illegalPaths.has(p)) {
 			throw new Error(`Invalid path: ${p}, cannot be a reserved word (${Array.from(illegalPaths).join(", ")})`);

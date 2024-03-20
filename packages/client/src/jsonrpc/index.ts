@@ -2,9 +2,7 @@ import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
 export type { RPCRequest, RPCResponse };
 
 import { RPCError } from "@kissrpc/jsonrpc";
-import type { PipelinedRPCRequest, PipelinedRPCResponse } from "@kissrpc/jsonrpc";
-import { type Requester } from "../rpc.js";
-import { ImproperUseOfPipelinedPromiseError, LazyPromise } from "../pipelining.js";
+import type { Requester } from "../requester.js";
 
 export class FetchRequesterError extends Error { }
 
@@ -76,15 +74,6 @@ export class FetchRequester implements Requester {
 
 		if (batch.length === 1) {
 			const req = batch[0].request;
-			let stringified: string;
-			try {
-				stringified = JSON.stringify(req);
-			} catch (e) {
-				if (e instanceof ImproperUseOfPipelinedPromiseError) {
-					throw new FetchRequesterError("FetchRequester does not support pipelined requests");
-				}
-				throw e;
-			}
 			const res = await fetch(this.url, {
 				signal: AbortSignal.timeout(this.options.timeoutMs),
 				...this.options.init,
@@ -92,7 +81,7 @@ export class FetchRequester implements Requester {
 					...this.options.init.headers,
 					"Content-Type": "application/json",
 				},
-				body: stringified,
+				body: JSON.stringify(req),
 			});
 			const result = await res.json();
 			checkRPCResponse(req, result);
@@ -103,9 +92,6 @@ export class FetchRequester implements Requester {
 			try {
 				stringified = JSON.stringify(requests);
 			} catch (e) {
-				if (e instanceof ImproperUseOfPipelinedPromiseError) {
-					throw new FetchRequesterError("FetchRequester does not support pipelined requests");
-				}
 				throw e;
 			}
 
@@ -166,26 +152,5 @@ export class FetchRequester implements Requester {
 			throw new RPCError(resp.error.code, resp.error.message, resp.error.data);
 		}
 		return resp.result;
-	}
-}
-
-export class PipelinedFetchRequester implements Requester {
-	private id = 1;
-	private options: FullFetchRequesterOptions;
-	private pendingPromises = new Set<LazyPromise<unknown>>();
-
-	constructor(private url: string, options?: FetchRequesterOptions) {
-		this.options = { ...fetchTransportOptionsDefault, ...options };
-		this.request = this.request.bind(this);
-	}
-
-	public request(path: string[], args: unknown[]): Promise<unknown> {
-		const lazyPromise = new LazyPromise(async () => {
-			this.pendingPromises.delete(lazyPromise);
-			// TODO: Implement pipelined requests
-			throw new Error("Not implemented");
-		});
-		this.pendingPromises.add(lazyPromise);
-		return lazyPromise;
 	}
 }

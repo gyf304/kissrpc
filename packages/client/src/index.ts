@@ -1,1 +1,2 @@
-export { Client, type Requester } from "./rpc.js";
+export type { Requester } from "./requester.js";
+export { Client } from "./rpc.js";

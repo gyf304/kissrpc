@@ -31,7 +31,6 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@yarnpkg/shell": "^4.0.0",
-    "anyjspm": "^0.0.3",
     "fastify": "^4.26.0",
     "ts-log": "^2.2.5",
     "typescript": "^5.0.0",
@@ -43,7 +42,7 @@
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "bun run build:esm && bun run build:cjs",
-    "prepack": "bun run build"
+    "build": "$npm_execpath run build:esm && $npm_execpath run build:cjs",
+    "prepack": "$npm_execpath run build"
   }
 }

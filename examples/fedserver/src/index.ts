@@ -20,14 +20,12 @@ const PORT = parseInt(process.env.PORT || "3001", 10);
 /* KissRPC also has support for federation
 First, create a client for the federation target
 */
-const federatedClient = new Client<FederatedInterface>(
+const federated = new Client<FederatedInterface>(
 	new FetchRequester("http://localhost:3000/api/v1/jsonrpc")
 );
 
 /* Then, use the federated client as a path in the server */
-const root = {
-	federated: federatedClient,
-} satisfies Node<Context>;
+const root = { federated } satisfies Node<Context>;
 
 if (SERVER_TYPE === "fastify") {
 	const server = fastify({ logger: true });

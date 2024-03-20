@@ -20,13 +20,12 @@
     "@kissrpc/server": "0.0.2"
   },
   "devDependencies": {
-    "anyjspm": "^0.0.3",
     "typescript": "^5.0.0"
   },
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build": "anypm run build:esm && anypm run build:cjs",
-    "prepack": "anypm run build"
+    "build": "$npm_execpath run build:esm && $npm_execpath run build:cjs",
+    "prepack": "$npm_execpath run build"
   }
 }
