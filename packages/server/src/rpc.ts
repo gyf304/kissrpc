@@ -1,3 +1,4 @@
+import { JSONSerializable } from "@rpc0/jsonrpc";
 import type * as z from "zod";
 
 const FunctionTypeSymbol = Symbol("FunctionType");
@@ -100,7 +101,7 @@ type ParametersSerializable<E extends Procedure, T> =
 type ReturnTypeSerializable<E extends Procedure, T> =
 	Awaited<ReturnType<E>> extends T ? true : false;
 
-export type ToInterface<N extends Node<any>, T> =
+export type ToInterface<N extends Node<any>, T = JSONSerializable> =
 	N extends Procedure ? (
 		ParametersSerializable<N, T> extends true ? (
 			ReturnTypeSerializable<N, T> extends true ? N : "Output not serializable"
@@ -194,4 +195,12 @@ export function createLocalInterface<Context, N extends Node<Context>>(
 	node: N, ctx: Context, noValidate?: boolean
 ): ToInterface<N, any> {
 	return createLocalInterfaceImpl(node, ctx, [], noValidate);
+}
+
+export function createLocalRequester<Context, N extends Node<Context>>(
+	node: N, ctx: Context, noValidate?: boolean
+) {
+	return {
+		request: (path: string[], args: any[]) => contextedCall(node, path, ctx, args, noValidate),
+	} as const;
 }

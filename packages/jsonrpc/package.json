@@ -1,5 +1,5 @@
 {
-  "name": "@kissrpc/jsonrpc",
+  "name": "@rpc0/jsonrpc",
   "private": false,
   "license": "MIT",
   "version": "0.0.3",

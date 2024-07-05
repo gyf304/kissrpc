@@ -1,5 +1,5 @@
 {
-  "name": "@kissrpc/client",
+  "name": "@rpc0/client",
   "private": false,
   "license": "MIT",
   "version": "0.0.3",
@@ -17,7 +17,7 @@
     }
   },
   "dependencies": {
-    "@kissrpc/server": "0.0.2"
+    "@rpc0/server": "0.0.3"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

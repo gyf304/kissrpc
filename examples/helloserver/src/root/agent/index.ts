@@ -1,4 +1,4 @@
-import { useContext, validateParameters, zodValidator } from "@kissrpc/server";
+import { useContext, validateParameters, zodValidator } from "@rpc0/server";
 import * as z from "zod";
 
 // We define a new context here

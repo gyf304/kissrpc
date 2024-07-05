@@ -1,5 +1,5 @@
 {
-  "name": "@kissrpc/server",
+  "name": "@rpc0/server",
   "private": false,
   "license": "MIT",
   "version": "0.0.3",
@@ -37,7 +37,7 @@
     "zod": "^3.22.4"
   },
   "dependencies": {
-    "@kissrpc/jsonrpc": "^0.0.2"
+    "@rpc0/jsonrpc": "^0.0.3"
   },
   "scripts": {
     "build:esm": "tsc -p tsconfig.esm.json",

@@ -1,10 +1,10 @@
-import { useContext, provideContext, validateParameters, zodValidator } from "@kissrpc/server";
+import { useContext, provideContext, validateParameters, zodValidator } from "@rpc0/server";
 import * as z from "zod";
 
 import type { Context as ParentContext } from "../index";
 
 import agent from "./agent";
-import { JSONSerializable } from "@kissrpc/jsonrpc";
+import { JSONSerializable } from "@rpc0/jsonrpc";
 
 export type Context = ParentContext;
 
@@ -23,6 +23,10 @@ export default useContext((ctx: Context) => ({
 			return `Waited for ${ms}ms`;
 		},
 		zodValidator(z.number()),
+	),
+	now: validateParameters(
+		async () => Date.now(),
+		zodValidator(),
 	),
 	error: async () => {
 		throw new Error("This is a custom error");

@@ -1,9 +1,10 @@
 import type * as express from "express";
 import type * as fastify from "fastify";
 
+import type { RPCRequest, RPCResponse } from "@rpc0/jsonrpc";
+import { RPCError, httpStatusCode, checkRequest } from "@rpc0/jsonrpc";
+
 import { contextedCall, NotFoundError, type Node } from "../rpc.js";
-import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
-import { RPCError, httpStatusCode, checkRequest } from "@kissrpc/jsonrpc";
 
 export interface FastifyContext {
 	req: fastify.FastifyRequest;
@@ -56,7 +57,7 @@ async function callJSONRPC(
 			jsonrpc: "2.0",
 			id: request.id,
 			result: {
-				name: "KissRPC",
+				name: "rpc0",
 				supportedExtensions: []
 			},
 		};
@@ -151,6 +152,7 @@ function registerFastify(
 	path: string,
 	options?: Options,
 ) {
+	const mimeType = "application/json";
 	server.post(path, async (req, res) => {
 		const context: FastifyContext = { req, res };
 		const body = req.body as unknown;
@@ -160,8 +162,9 @@ function registerFastify(
 		const statuses = arr.map(httpStatusCode);
 		const status = statuses.some((status) => status !== statuses[0]) ? 207 : statuses[0];
 
+		res.header("Content-Type", mimeType);
 		res.status(status);
-		res.send(result);
+		res.send(JSON.stringify(result));
 	}).setErrorHandler((error, req, res) => {
 		// We will also need to handle unexpected errors in the JSON-RPC format
 		// This is mostly for the case where the request is not valid JSON
@@ -181,14 +184,15 @@ function registerExpress(
 	path: string,
 	options?: Options,
 ) {
+	const mimeType = "application/json";
 	server.use(function(req, res, next){
 		let data: string[] = [];
-		req.on("data", function(chunk){ data.push(chunk) })
-		req.on("end", function(){
+		req.on("data", (chunk) => { data.push(chunk) })
+		req.on("end", () => {
 			req.body = data.join("");
 			next();
 		})
-		res.contentType("application/json");
+		res.contentType(mimeType);
 	}).post(path, async (req, res) => {
 		const context: ExpressContext = { req, res };
 		let body: unknown;
@@ -205,7 +209,8 @@ function registerExpress(
 		const statuses = arr.map(httpStatusCode);
 		const status = statuses.some((status) => status !== statuses[0]) ? 207 : statuses[0];
 
+		res.header("Content-Type", mimeType);
 		res.status(status);
-		res.send(result);
+		res.send(JSON.stringify(result));
 	});
 }

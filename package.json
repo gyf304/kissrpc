@@ -1,17 +1,23 @@
 {
-	"name": "kissrpc",
+	"name": "rpc0",
 	"private": true,
 	"workspaces": [
 		"packages/*",
 		"examples/*"
 	],
 	"resolutions": {
-		"@kissrpc/jsonrpc": "workspace:packages/jsonrpc",
-		"@kissrpc/server": "workspace:packages/server",
-		"@kissrpc/client": "workspace:packages/client",
-		"@kissrpc/helloserver": "workspace:examples/helloserver",
-		"@kissrpc/helloclient": "workspace:examples/helloclient",
-		"@kissrpc/fedserver": "workspace:examples/fedserver",
-		"@kissrpc/fedclient": "workspace:examples/fedclient"
+		"@rpc0/jsonrpc": "workspace:packages/jsonrpc",
+		"@rpc0/server": "workspace:packages/server",
+		"@rpc0/client": "workspace:packages/client",
+		"@rpc0/helloserver": "workspace:examples/helloserver",
+		"@rpc0/helloclient": "workspace:examples/helloclient",
+		"@rpc0/fedserver": "workspace:examples/fedserver",
+		"@rpc0/fedclient": "workspace:examples/fedclient"
+	},
+	"devDependencies": {
+		"bun-types": "^1.1.8"
+	},
+	"scripts": {
+		"build": "bun ./scripts/build.ts"
 	}
 }

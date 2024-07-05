@@ -1,5 +1,5 @@
 {
-  "name": "@kissrpc/helloserver",
+  "name": "@rpc0/helloserver",
   "private": true,
   "module": "index.ts",
   "type": "module",
@@ -13,7 +13,7 @@
     "zod": "^3.22.4"
   },
   "dependencies": {
-    "@kissrpc/server": "workspace:*",
+    "@rpc0/server": "workspace:*",
     "express": "^4.18.2",
     "fastify": "^4.26.0"
   },

@@ -1,10 +1,11 @@
 const OriginalErrorSymbol = Symbol("OriginalError");
 
+export type JSONPrimitive = string | number | boolean | null;
 interface JSONObject {
 	[key: string]: JSONSerializable;
 }
 type JSONArray = JSONSerializable[];
-export type JSONSerializable = string | number | boolean | null | JSONObject | JSONArray;
+export type JSONSerializable = JSONPrimitive | JSONObject | JSONArray;
 
 export interface RPCRequest {
 	jsonrpc: "2.0";

@@ -1,11 +1,11 @@
 import fastify from "fastify";
 import express from "express";
 
-import { ToInterface } from "@kissrpc/server";
-import { register, FastifyContext, ExpressContext, Options } from "@kissrpc/server/jsonrpc";
+import { ToInterface } from "@rpc0/server";
+import { register, FastifyContext, ExpressContext, Options } from "@rpc0/server/jsonrpc";
 
 import root from "./root";
-import { JSONSerializable, RPCError } from "@kissrpc/jsonrpc";
+import { RPCError } from "@rpc0/jsonrpc";
 
 /*
 Context is a server-only construct that is used to track information
@@ -14,15 +14,15 @@ such as the request and response objects, the user, etc.
 */
 export type Context = FastifyContext | ExpressContext;
 
-export type Interface = ToInterface<typeof root, JSONSerializable>;
+export type Interface = ToInterface<typeof root>;
 
 const SERVER_TYPE = process.env.SERVER_TYPE || "fastify";
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 /*
-KissRPC has out-of-the-box support for serving JSON-RPC over both
+rpc0 has out-of-the-box support for serving JSON-RPC over both
 Fastify and Express. This means that if you use either Fastify or
-Express, you can seamlessly plug in KissRPC.
+Express, you can seamlessly plug in rpc0.
 */
 
 const options: Options = {

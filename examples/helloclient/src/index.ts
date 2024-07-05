@@ -1,6 +1,6 @@
-import { Client } from "@kissrpc/client";
-import { FetchRequester } from "@kissrpc/client/jsonrpc";
-import type { Interface } from "@kissrpc/helloserver";
+import { Client } from "@rpc0/client";
+import { FetchRequester } from "@rpc0/client/jsonrpc";
+import type { Interface } from "@rpc0/helloserver";
 
 const rpc = new Client<Interface>(
 	new FetchRequester("http://localhost:3000/api/v1/jsonrpc")
@@ -12,7 +12,10 @@ console.log(await rpc.hello("world"));        // Hello, world!
 console.log(await rpc.agent.hello("world"));  // Hello, world! You are using ...
 console.log(await rpc.add(1, 2));             // 3
 console.log(await rpc.wait(1000));            // Waited for 1000ms
-console.log(await rpc.echo("Hello, world!")); // Hello, world!
+console.log(await rpc.now());                 // Current date
+console.log(await rpc.echo(
+	new Map([["hello", "world"]])
+)); // Map { 'hello' => 'world' }
 
 try {
 	await rpc.error();

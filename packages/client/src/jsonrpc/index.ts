@@ -1,7 +1,7 @@
-import type { RPCRequest, RPCResponse } from "@kissrpc/jsonrpc";
+import type { RPCRequest, RPCResponse } from "@rpc0/jsonrpc";
 export type { RPCRequest, RPCResponse };
 
-import { RPCError } from "@kissrpc/jsonrpc";
+import { RPCError } from "@rpc0/jsonrpc";
 import type { Requester } from "../requester.js";
 
 export class FetchRequesterError extends Error { }
@@ -31,12 +31,7 @@ const fetchTransportOptionsDefault: FullFetchRequesterOptions = {
 	maxBatchSize: 1,
 	maxBatchWaitMs: 0,
 	timeoutMs: 10000,
-	init: {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-	},
+	init: {},
 };
 
 export type FetchRequesterOptions = Partial<FullFetchRequesterOptions>;
@@ -77,13 +72,14 @@ export class FetchRequester implements Requester {
 			const res = await fetch(this.url, {
 				signal: AbortSignal.timeout(this.options.timeoutMs),
 				...this.options.init,
+				method: "POST",
 				headers: {
 					...this.options.init.headers,
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(req),
 			});
-			const result = await res.json();
+			const result = await JSON.parse(await res.text());
 			checkRPCResponse(req, result);
 			batch[0].resolve(result);
 		} else {
@@ -98,6 +94,7 @@ export class FetchRequester implements Requester {
 			const res = await fetch(this.url, {
 				signal: AbortSignal.timeout(this.options.timeoutMs),
 				...this.options.init,
+				method: "POST",
 				headers: {
 					...this.options.init.headers,
 					"Content-Type": "application/json",

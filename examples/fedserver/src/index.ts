@@ -1,14 +1,14 @@
 import fastify from "fastify";
 import express from "express";
 
-import { ToInterface, Node } from "@kissrpc/server";
-import { register, FastifyContext, ExpressContext } from "@kissrpc/server/jsonrpc";
+import { ToInterface, Node } from "@rpc0/server";
+import { register, FastifyContext, ExpressContext } from "@rpc0/server/jsonrpc";
 
-import { JSONSerializable } from "@kissrpc/jsonrpc";
-import { Client } from "@kissrpc/client";
-import { FetchRequester } from "@kissrpc/client/jsonrpc";
+import { JSONSerializable } from "@rpc0/jsonrpc";
+import { Client } from "@rpc0/client";
+import { FetchRequester } from "@rpc0/client/jsonrpc";
 
-import type { Interface as FederatedInterface } from "@kissrpc/helloserver";
+import type { Interface as FederatedInterface } from "@rpc0/helloserver";
 
 export type Context = FastifyContext | ExpressContext;
 
@@ -17,7 +17,7 @@ export type Interface = ToInterface<typeof root, JSONSerializable>;
 const SERVER_TYPE = process.env.SERVER_TYPE || "fastify";
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
-/* KissRPC also has support for federation
+/* rpc0 also has support for federation
 First, create a client for the federation target
 */
 const federated = new Client<FederatedInterface>(
@@ -25,7 +25,10 @@ const federated = new Client<FederatedInterface>(
 );
 
 /* Then, use the federated client as a path in the server */
-const root = { federated } satisfies Node<Context>;
+const root = {
+	federated,
+	echo: async <T extends JSONSerializable>(x: T) => x,
+} satisfies Node<Context>;
 
 if (SERVER_TYPE === "fastify") {
 	const server = fastify({ logger: true });
